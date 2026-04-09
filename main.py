@@ -78,8 +78,7 @@ class LongTextWindow(QMainWindow):
                 self.setWindowFlags(
         Qt.WindowType.FramelessWindowHint |
         Qt.WindowType.WindowStaysOnTopHint |
-        Qt.WindowType.WindowTransparentForInput
-)
+        Qt.WindowType.WindowTransparentForInput)
                 self.setGeometry(geo)
                 self.show()
             else:
@@ -107,9 +106,9 @@ class LongTextWindow(QMainWindow):
             menu.exec(event.globalPos())
 
     def keyPressEvent(self, key):
-        if key == Qt.Key.Key_F8:
+        if key.key() == Qt.Key.Key_F8:
             self.hide_log
-        if key == Qt.Key.Key_Insert:
+        if key.key() == Qt.Key.Key_Insert:
             self.toggle_scrolling
         
 
