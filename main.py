@@ -2,10 +2,9 @@ import os
 os.environ["QT_QPA_PLATFORM"] = "xcb"
 
 import sys
-from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QScrollArea, QVBoxLayout, QWidget, QMenu, QWidgetAction
-from PyQt6.QtGui import QAction, QFont
-from PyQt6.QtCore import Qt
-import os
+from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QScrollArea, QVBoxLayout, QWidget, QMenu
+from PyQt6.QtGui import QAction, QFont, QKeyEvent
+from PyQt6.QtCore import Qt, QTimer
 
 def load_text():
     with open("content.txt") as f: 
@@ -58,7 +57,19 @@ class LongTextWindow(QMainWindow):
                 color: white; /* Text stays 100% solid white */
                 background-color: transparent; /* Ensure label doesn't have its own box */
             }""")
-            
+
+
+        self.scroll_timer = QTimer()
+        self.scroll_speed = 50 # Lower is faster
+        
+        def scroll_step():
+            bar = self.scrol.verticalScrollBar()
+            if bar.value() < bar.maximum():
+                bar.setValue(bar.value() + 1)
+        
+        self.scroll_timer.timeout.connect(scroll_step)
+
+
         def hide_log():
             geo = self.geometry()
             is_frameless = self.windowFlags() & Qt.WindowType.FramelessWindowHint
@@ -66,7 +77,8 @@ class LongTextWindow(QMainWindow):
             if is_frameless == 0:
                 self.setWindowFlags(
         Qt.WindowType.FramelessWindowHint |
-        Qt.WindowType.WindowStaysOnTopHint
+        Qt.WindowType.WindowStaysOnTopHint |
+        Qt.WindowType.WindowTransparentForInput
 )
                 self.setGeometry(geo)
                 self.show()
@@ -77,14 +89,29 @@ class LongTextWindow(QMainWindow):
                  
         self.hide_log = hide_log
 
+    def toggle_scrolling(self):
+        if self.scroll_timer.isActive():
+            self.scroll_timer.stop()
+        else:
+            self.scroll_timer.start(self.scroll_speed)
+
     def contextMenuEvent(self, event):
             menu = QMenu(self)
             ionknowwhattocallthis = QAction("hide")
             quitm = QAction("quit")
+            tog_scrl = QAction("toggle scroll")
+            tog_scrl.triggered.connect(self.toggle_scrolling)
             ionknowwhattocallthis.triggered.connect(self.hide_log)
             quitm.triggered.connect(lambda: QApplication.instance().quit())
-            menu.addActions([ionknowwhattocallthis, quitm])
+            menu.addActions([ionknowwhattocallthis, quitm, tog_scrl])
             menu.exec(event.globalPos())
+
+    def keyPressEvent(self, key):
+        if key == Qt.Key.Key_F8:
+            self.hide_log
+        if key == Qt.Key.Key_Insert:
+            self.toggle_scrolling
+        
 
         
 if __name__ == "__main__":
@@ -92,3 +119,4 @@ if __name__ == "__main__":
     window = LongTextWindow()
     window.show()
     sys.exit(app.exec())
+
