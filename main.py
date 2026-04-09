@@ -2,14 +2,17 @@ import os
 os.environ["QT_QPA_PLATFORM"] = "xcb"
 
 import sys
-from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QScrollArea, QVBoxLayout, QWidget, QMenu
+from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QScrollArea, QVBoxLayout, QWidget, QMenu, QSlider, QWidgetAction
 from PyQt6.QtGui import QAction, QFont, QKeyEvent
-from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QObject
+from pynput import keyboard
 
 def load_text():
     with open("content.txt") as f: 
         return f.read()
 
+class KeyComm(QObject):
+    keypressed = pyqtSignal()
 
 class LongTextWindow(QMainWindow):
     def __init__(self):
@@ -66,7 +69,7 @@ class LongTextWindow(QMainWindow):
             bar = self.scrol.verticalScrollBar()
             if bar.value() < bar.maximum():
                 bar.setValue(bar.value() + 1)
-        
+        self.scroll_timer.setInterval(self.scroll_speed)
         self.scroll_timer.timeout.connect(scroll_step)
 
 
@@ -87,32 +90,48 @@ class LongTextWindow(QMainWindow):
                  self.setGeometry(geo)
                  
         self.hide_log = hide_log
+        self.comm = KeyComm()
+        self.comm.keypressed.connect(self.toggle_scrolling)
+        
+        def keyPress(key):
+            print(key)
+            if key == keyboard.Key.cmd or key == keyboard.Key.f8:
+                hide_log()
+                print("caught key")
+            if key == keyboard.Key.insert:
+                self.comm.keypressed.emit()
+
+        listener = keyboard.Listener(on_press=keyPress)
+        listener.start()
 
     def toggle_scrolling(self):
         if self.scroll_timer.isActive():
             self.scroll_timer.stop()
         else:
-            self.scroll_timer.start(self.scroll_speed)
+            self.scroll_timer.start()
 
     def contextMenuEvent(self, event):
             menu = QMenu(self)
             ionknowwhattocallthis = QAction("hide")
             quitm = QAction("quit")
+            sliderC = QWidgetAction(menu)
+            slider = QSlider()
+            slider.setMaximum(300)
+            slider.setMinimum(1)
+            slider.setFixedWidth(300)
+            slider.setOrientation(Qt.Orientation.Horizontal)
+            sliderC.setDefaultWidget(slider)
             tog_scrl = QAction("toggle scroll")
             tog_scrl.triggered.connect(self.toggle_scrolling)
             ionknowwhattocallthis.triggered.connect(self.hide_log)
             quitm.triggered.connect(lambda: QApplication.instance().quit())
             menu.addActions([ionknowwhattocallthis, quitm, tog_scrl])
+            menu.addSeparator()
+            menu.addAction(sliderC)
+            menu.setStyleSheet("padding: 5px;")
             menu.exec(event.globalPos())
 
-    def keyPressEvent(self, key):
-        if key.key() == Qt.Key.Key_F8:
-            self.hide_log
-        if key.key() == Qt.Key.Key_Insert:
-            self.toggle_scrolling
-        
 
-        
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = LongTextWindow()
